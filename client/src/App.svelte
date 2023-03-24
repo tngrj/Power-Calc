@@ -1,14 +1,11 @@
 <script>
-	import { onMount } from 'svelte';
 	import Chart from 'chart.js/auto';
 	import moment from 'moment';
 	import 'chartjs-adapter-moment';
 
 	let portfolio;
 
-	async function getData() {
-		const response = await fetch('./data');
-		const data = await response.json();
+	async function getData(data) {
 		const timestamps = data.timestamp.map((t) => moment(t, 'YYYY-MM-DD HH:mm:ss'));
 		const power = data.power;
 		const states = data.states;
@@ -57,62 +54,79 @@
 		return { data: chartData, options: chartOptions };
 	}
 
-	onMount(async () => {
-		const { data, options } = await getData();
+	async function createGraph(dataParam) {
+		const { data, options } = await getData(dataParam);
 		const ctx = portfolio.getContext('2d');
 		const myChart = new Chart(ctx, {
 			type: 'line',
 			data: data,
 			options: options,
 		});
-	});
+	}
+
+	async function submitFile() {
+		const container = document.getElementById('uploadContainer');
+		container.style.display = 'none';
+
+		const fileInput = document.querySelector('input[type=file]');
+		const file = fileInput.files[0];
+
+		if (file.type !== 'text/csv') {
+			alert('Please select a CSV file.');
+			return;
+		}
+
+		const formData = new FormData();
+		formData.append('file', file);
+
+		console.log('this ran?');
+		const response = await fetch('/data', {
+			method: 'POST',
+			body: formData,
+		});
+
+		if (response.ok) {
+			const data = await response.json();
+			createGraph(data);
+		} else {
+			alert('Error uploading file.');
+		}
+
+		const canvas = document.getElementById('graphContainer');
+		canvas.style.display = 'block';
+	}
 </script>
 
-<!-- <script>
-	import { onMount } from 'svelte';
-	import Chart from 'chart.js/auto/auto.js';
-
-	let portfolio;
-
-	async function getData() {
-		const response = await fetch('./test');
-		const data = await response.json();
-		return data;
-	}
-
-	function formatData(data) {
-		const labels = data.map((_, i) => `Data point ${i + 1}`);
-		return {
-			labels,
-			datasets: [
-				{
-					label: 'On Off state of appliance',
-					data: data,
-					fill: false,
-					borderColor: 'rgb(75, 192, 192)',
-					tension: 0.1,
-				},
-			],
-		};
-	}
-	onMount(async () => {
-		const data = await getData();
-		const formattedData = formatData(data);
-		const ctx = portfolio.getContext('2d');
-		const myChart = new Chart(ctx, {
-			type: 'line',
-			data: formattedData,
-		});
-	});
-</script>  -->
-
-<canvas bind:this={portfolio} />
-
-<div id="container">
-	<div class="file-uploader">
-		<img src="upload.png" alt="upload-icon" />
-		<h2>Upload a dataset</h2>
-		<input id="file-upload" type="file" />
-		<label for="file-upload">Select Dataset</label>
+<section class="hero">
+	<div class="hero-body">
+		<div class="container has-text-centered">
+			<p class="title is-size-1-desktop has-text-weight-semibold">Power Calculator</p>
+			<!-- <p class="subtitle is-size-3-desktop">Hero subtitle</p> -->
+		</div>
 	</div>
+</section>
+
+<div id="uploadContainer" class="container has-text-centered is-justify-content-center">
+	<div id="uploadFile" class="file is-medium is-centered is-boxed has-name">
+		<label class="file-label">
+			<input class="file-input" type="file" name="resume" />
+			<span class="file-cta">
+				<span class="file-icon">
+					<i class="fa-solid fa-arrow-up-from-bracket fa-bounce fa-lg" />
+				</span>
+				<span class="file-label"> Upload File </span>
+			</span>
+			<span class="file-name has-text-centered"> No file uploaded </span>
+		</label>
+	</div>
+
+	<br />
+
+	<div class="control">
+		<button class="button is-info" on:click={submitFile}>Submit</button>
+	</div>
+</div>
+
+<div class="container" id="graphContainer" style="display: none">
+	<canvas bind:this={portfolio} />
 </div>
