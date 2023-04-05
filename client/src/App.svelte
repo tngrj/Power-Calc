@@ -54,6 +54,16 @@
 		return { data: chartData, options: chartOptions };
 	}
 
+	function powerConsump(data) {
+		const periodInfoDiv = document.getElementById('power_consumption_div');
+		for (let i = 0; i < data.period_info.length; i++) {
+			console.log('ran', i);
+			const periodInfo = document.createElement('p');
+			periodInfo.textContent = data.period_info[i];
+			periodInfoDiv.appendChild(periodInfo);
+		}
+	}
+
 	async function createGraph(dataParam) {
 		const { data, options } = await getData(dataParam);
 		const ctx = portfolio.getContext('2d');
@@ -79,8 +89,22 @@
 		const formData = new FormData();
 		formData.append('file', file);
 
-		console.log('this ran?');
-		const response = await fetch('/data', {
+		var e = document.getElementById('applianceSelect');
+		var selectedValue = e.options[e.selectedIndex].text;
+
+		let url;
+		if (selectedValue === 'Air Conditioner') {
+			url = '/aircon';
+		} else if (selectedValue === 'Oven') {
+			url = '/oven';
+		} else if (selectedValue === 'Heater') {
+			url = '/heater';
+		} else {
+			alert('Please select an appliance.');
+			return;
+		}
+
+		const response = await fetch(url, {
 			method: 'POST',
 			body: formData,
 		});
@@ -88,6 +112,7 @@
 		if (response.ok) {
 			const data = await response.json();
 			createGraph(data);
+			powerConsump(data);
 		} else {
 			alert('Error uploading file.');
 		}
@@ -106,7 +131,7 @@
 	</div>
 </section>
 
-<div id="uploadContainer" class="container has-text-centered is-justify-content-center">
+<div id="uploadContainer" class="container">
 	<div id="uploadFile" class="file is-medium is-centered is-boxed has-name">
 		<label class="file-label">
 			<input class="file-input" type="file" name="resume" />
@@ -122,11 +147,30 @@
 
 	<br />
 
-	<div class="control">
-		<button class="button is-info" on:click={submitFile}>Submit</button>
+	<div class="is-flex is-justify-content-center">
+		<div class="field has-addons">
+			<p class="control has-icons-left">
+				<span class="select is-medium">
+					<select id="applianceSelect">
+						<option value="" disabled selected>Select Appliance</option>
+						<option>Air Conditioner</option>
+						<option>Oven</option>
+						<option>Heater</option>
+					</select>
+				</span>
+				<span class="icon is-left">
+					<i class="fa-solid fa-gear" />
+				</span>
+			</p>
+			<p class="control">
+				<button class="button is-primary is-medium" on:click={submitFile}>Submit</button>
+			</p>
+		</div>
 	</div>
 </div>
 
 <div class="container" id="graphContainer" style="display: none">
 	<canvas bind:this={portfolio} />
+	<br />
+	<div class="content is-medium has-text-centered"><p id="power_consumption_div" /></div>
 </div>
